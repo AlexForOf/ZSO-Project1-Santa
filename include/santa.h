@@ -10,7 +10,7 @@
     #define PRINT_MSG(...) printf(__VA_ARGS__)
     #define SIM_SLEEP(x) sleep(x)
 #else
-    #define PRINT(MSG...) do {} while(0)
+    #define PRINT_MSG(...) do {} while(0)
     #define SIM_SLEEP(x) do{} while(0)
 #endif
 
@@ -29,6 +29,7 @@ typedef struct {
     int total_consults_made;
 
     bool is_santa_sleeping;
+    bool is_consulting;
     bool is_terminate;
 
     pthread_mutex_t mutex_santa;
