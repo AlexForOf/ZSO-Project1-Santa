@@ -30,6 +30,7 @@ typedef struct {
 
     bool is_santa_sleeping;
     bool is_consulting;
+    bool is_gnome_ready;
     bool is_terminate;
 
     pthread_mutex_t mutex_santa;

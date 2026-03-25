@@ -7,19 +7,22 @@ void* santa_routine(void* arg) {
     while(
       !sim_state->is_terminate 
       && sim_state->count_reindeer < 9 
-      && sim_state->count_gnome < 3
+      //&& sim_state->count_gnome < 3
+      && !sim_state->is_gnome_ready
     ){
       pthread_cond_wait(&sim_state->cv_santa, &sim_state->mutex_santa);
     }
 
-    PRINT_MSG("Santa has been awaken!\n");
     if(sim_state->is_terminate) {
       pthread_mutex_unlock(&sim_state->mutex_santa);
       return NULL;
     }
 
+    PRINT_MSG("Santa has been awaken!\n");
+    
     if(sim_state->count_reindeer >= 9) {
       sim_state->total_deliveries_made += 1;
+      sim_state->count_reindeer = 0;
       PRINT_MSG("Reindeer have been served. This is delivery number %d, and now %d left to go!\n", sim_state->total_deliveries_made, MAX_DELIVERIES - sim_state->total_deliveries_made);
       pthread_mutex_unlock(&sim_state->mutex_santa);
       SIM_SLEEP(3);
@@ -30,10 +33,13 @@ void* santa_routine(void* arg) {
       }
 
       pthread_cond_broadcast(&sim_state->cv_reindeer);
-      sim_state->count_reindeer = 0;
-    }else if(sim_state->count_gnome >= 3) {
+    }else if(
+      sim_state->is_gnome_ready
+      //sim_state->count_gnome >= 3
+    ) {
       sim_state->total_consults_made += 1;
       PRINT_MSG("Consultation number %d for gnomes is held! There's only %d remain till X-mas!\n", sim_state->total_consults_made, MAX_CONSULTS - sim_state->total_consults_made);
+      
       pthread_mutex_unlock(&sim_state->mutex_santa);
       SIM_SLEEP(5);
       pthread_mutex_lock(&sim_state->mutex_santa);
@@ -42,11 +48,13 @@ void* santa_routine(void* arg) {
         pthread_cond_signal(&sim_state->cv_main_wait);
       }
 
+      sim_state->is_gnome_ready = false;
+
       pthread_cond_broadcast(&sim_state->cv_gnome);
     }
-    pthread_mutex_unlock(&sim_state->mutex_santa);
 
     PRINT_MSG("Santa goes back to sleep!\n");
+    pthread_mutex_unlock(&sim_state->mutex_santa);
   }
 }
 
@@ -104,7 +112,14 @@ void* gnome_routine(void* arg) {
       return NULL;
     }
 
-    while(sim_state->count_gnome >= 3 && !sim_state->is_terminate) {
+    while(
+      (
+        sim_state->count_gnome >= 3
+        || 
+        sim_state->is_consulting
+      ) 
+      && !sim_state->is_terminate
+    ) {
       pthread_cond_wait(&sim_state->cv_gnome_queue, &sim_state->mutex_santa);
     }
 
@@ -119,7 +134,8 @@ void* gnome_routine(void* arg) {
     PRINT_MSG("New gnome is heading towards Santa! Now we're %d gnomes up!\n", sim_state->count_gnome);
 
     if(sim_state->count_gnome == 3) {
-      //sim_state->is_consulting = true;
+      sim_state->is_consulting = true;
+      sim_state->is_gnome_ready = true;
       pthread_cond_signal(&sim_state->cv_santa);
     }
 
@@ -129,20 +145,19 @@ void* gnome_routine(void* arg) {
       pthread_cond_wait(&sim_state->cv_gnome, &sim_state->mutex_santa);
     }
 
-    PRINT_MSG("Consultation with Santa has ended, now it's time to release our fellow gnome!\n");
-
     if(sim_state->is_terminate) {
       pthread_mutex_unlock(&sim_state->mutex_santa);
 
       return NULL;
     }
-
+   
+    PRINT_MSG("Consultation with Santa has ended, now it's time to release our fellow gnome!\n");
     sim_state->count_gnome -= 1;
 
     PRINT_MSG("Now we're %d gnomes gathered!\n", sim_state->count_gnome);
 
     if(sim_state->count_gnome == 0) {
-      //sim_state->is_consulting = false;
+      sim_state->is_consulting = false;
       pthread_cond_broadcast(&sim_state->cv_gnome_queue);
     }
 
@@ -163,6 +178,7 @@ void project_zso(void) {
 
   sim_state.is_santa_sleeping = true;
   sim_state.is_consulting = false;
+  sim_state.is_gnome_ready = false;
   sim_state.is_terminate = false;
 
   pthread_mutex_init(&sim_state.mutex_santa, NULL);
