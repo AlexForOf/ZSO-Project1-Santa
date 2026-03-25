@@ -21,7 +21,9 @@ void* santa_routine(void* arg) {
     if(sim_state->count_reindeer >= 9) {
       sim_state->total_deliveries_made += 1;
       PRINT_MSG("Reindeer have been served. This is delivery number %d, and now %d left to go!\n", sim_state->total_deliveries_made, MAX_DELIVERIES - sim_state->total_deliveries_made);
+      pthread_mutex_unlock(&sim_state->mutex_santa);
       SIM_SLEEP(3);
+      pthread_mutex_lock(&sim_state->mutex_santa);
 
       if(sim_state->total_deliveries_made >= MAX_DELIVERIES) {
         pthread_cond_signal(&sim_state->cv_main_wait);
@@ -32,7 +34,9 @@ void* santa_routine(void* arg) {
     }else if(sim_state->count_gnome >= 3) {
       sim_state->total_consults_made += 1;
       PRINT_MSG("Consultation number %d for gnomes is held! There's only %d remain till X-mas!\n", sim_state->total_consults_made, MAX_CONSULTS - sim_state->total_consults_made);
+      pthread_mutex_unlock(&sim_state->mutex_santa);
       SIM_SLEEP(5);
+      pthread_mutex_lock(&sim_state->mutex_santa);
 
       if(sim_state->total_consults_made >= MAX_CONSULTS) {
         pthread_cond_signal(&sim_state->cv_main_wait);
