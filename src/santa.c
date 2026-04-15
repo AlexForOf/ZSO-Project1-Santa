@@ -7,7 +7,6 @@ void* santa_routine(void* arg) {
     while(
       !sim_state->is_terminate 
       && sim_state->count_reindeer < 9 
-      //&& sim_state->count_gnome < 3
       && !sim_state->is_gnome_ready
     ){
       pthread_cond_wait(&sim_state->cv_santa, &sim_state->mutex_santa);
@@ -35,7 +34,6 @@ void* santa_routine(void* arg) {
       pthread_cond_broadcast(&sim_state->cv_reindeer);
     }else if(
       sim_state->is_gnome_ready
-      //sim_state->count_gnome >= 3
     ) {
       sim_state->total_consults_made += 1;
       PRINT_MSG("Consultation number %d for gnomes is held! There's only %d remain till X-mas!\n", sim_state->total_consults_made, MAX_CONSULTS - sim_state->total_consults_made);
@@ -236,7 +234,6 @@ void project_zso(void) {
     pthread_join(thread_gnome[i], NULL);
   }
 
-  //DON'T FORGET TO DESTROY ALL OBJECTS
   PRINT_MSG("Process of destruction has been initiated!\n");
   pthread_cond_destroy(&sim_state.cv_santa);
   pthread_cond_destroy(&sim_state.cv_reindeer);
